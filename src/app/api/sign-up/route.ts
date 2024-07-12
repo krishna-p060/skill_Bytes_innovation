@@ -1,34 +1,21 @@
 import dbConnect from "@/lib/dbConnect";
 import UserModel from "@/model/User";
-import { ApiResponse } from "@/types/ApiResponse";
+
 import bcrypt from "bcryptjs";
+import { sendVerificationEmail } from "@/helpers/sendVerificationEmail";
 
-//verfication email
-//api response
-
-// export async function sendVerificationEmail(
-//     email: string,
-//     username: string,
-//     verifyCode: string): Promise<ApiResponse> {
-//     try {
-//         return {success: true, message: "Verification email sent"};
-
-//     }catch(emailError) {
-//         console.log("Error sending verification email", emailError);
-//         return {success: false, message: "Error sending verification email"};
-//     }
-// }
 
 export async function POST(request: Request) {
+    console.log("singup request received----------------route.ts------------------");
     await dbConnect();
 
     try{
         const {username, email, password} = await request.json();
         const existingUserVerifiedByUsername = await UserModel.findOne({username,
-            isVerified: true
+            isVerified: true,
         });
 
-        if(existingUserVerifiedByUsername) {
+    if(existingUserVerifiedByUsername) {
             return Response.json({success: false, message: "Username already exists"}
                 ,{status: 400}
             );
@@ -66,6 +53,14 @@ export async function POST(request: Request) {
             await newUser.save();
         }
         //send verification email
+        const emailResponse = await sendVerificationEmail(email, username, verifyCode);
+        if(!emailResponse.success) {
+            return Response.json({success: false, message: "Failed to send verification email"}
+                ,{status: 500}
+            );
+        }
+
+        return Response.json({success: true, message: "Verification email sent"},{status: 201});
 
     }catch(error) {
         console.log("Error signing up", error);

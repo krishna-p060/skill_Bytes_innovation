@@ -1,6 +1,10 @@
 import VerificationEmail from "../../emails/VerificationEmail";
 import { ApiResponse } from "@/types/ApiResponse";
 import nodemailer from "nodemailer";
+import React from 'react';
+import ReactDOMServer from 'react-dom/server';
+
+
 
 export async function sendVerificationEmail(
     email: string,
@@ -20,20 +24,36 @@ export async function sendVerificationEmail(
             }
         });
 
+        // Render the React component to static HTML
+        const emailHtml = VerificationEmail({username, otp:verifyCode});
+
         const mailOptions = {
             from: userMail,
             to: email,
             subject: "SkillBytes | Verification Code",
-            react: VerificationEmail({ username, otp: verifyCode })
+            html: emailHtml,
         };
 
-        await transporter.sendMail(mailOptions);
+        await transporter.sendMail(mailOptions,(error, info) => {
+            if(error){
+                console.error("Error sending verification email", error);
+                return {
+                    success: false,
+                    message: "Failed to send verification email"
+                }
+            }
+            console.log("Verification email sent", info.response);
+            
+        }
+        );
 
         return {
             success: true,
             message: "Verification email sent"
         
         }
+
+        
     }
     catch(emailError){
         console.error("error sending verification email",emailError);
